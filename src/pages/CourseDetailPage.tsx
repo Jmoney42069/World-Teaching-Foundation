@@ -133,16 +133,23 @@ export default function CourseDetailPage() {
               const meta = TIER_META[t];
               const tierInfo = course.tiers[t];
               const isActive = selectedTier === t;
+              const isLocked = t !== 'beginner';
               return (
                 <button
                   key={t}
-                  onClick={() => handleTierChange(t)}
+                  onClick={() => !isLocked && handleTierChange(t)}
+                  disabled={isLocked}
                   className={`relative rounded-xl border p-4 text-left transition-all ${
-                    isActive
-                      ? 'border-accent bg-accent/10 shadow-sm'
-                      : 'border-border-subtle bg-surface hover:border-accent/30 hover:bg-surface-hover'
+                    isLocked
+                      ? 'border-border-subtle bg-surface opacity-60 cursor-not-allowed'
+                      : isActive
+                        ? 'border-accent bg-accent/10 shadow-sm'
+                        : 'border-border-subtle bg-surface hover:border-accent/30 hover:bg-surface-hover'
                   }`}
                 >
+                  {isLocked && (
+                    <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-border text-[10px] font-bold">🔒</div>
+                  )}
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold uppercase tracking-wider">{meta.label}</span>
                     <span className={`text-xs font-bold ${meta.price === 0 ? 'text-accent' : 'text-primary'}`}>
@@ -154,7 +161,10 @@ export default function CourseDetailPage() {
                     <span>⏱ {meta.duration}</span>
                     <span>• {tierInfo.lessons.length} lessons</span>
                   </div>
-                  {isActive && (
+                  {isLocked && (
+                    <span className="mt-1.5 inline-block text-[10px] font-bold uppercase tracking-wider text-accent">Coming Soon</span>
+                  )}
+                  {isActive && !isLocked && (
                     <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] text-bg font-bold">✓</div>
                   )}
                 </button>

@@ -9,6 +9,8 @@ import { profiles, type Category } from '../data/profileData';
 import { getCareerRecommendations, getAiProofIndicator } from '../lib/recommendations';
 import { useProgress } from '../context/ProgressContext';
 import { getAllCourses, getCourseLessonIds } from '../data/courseRegistry';
+import { useStreak } from '../context/StreakContext';
+import { useAchievements } from '../context/AchievementContext';
 
 interface HabitSnapshot {
   id: string;
@@ -43,6 +45,8 @@ export default function NewDashboardPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const progress = useProgress();
+  const streak = useStreak();
+  const achievements = useAchievements();
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +73,7 @@ export default function NewDashboardPage() {
       }
     } catch (_e) { /* ignore */ }
 
-    const bestStreak = habits.reduce((max, h) => Math.max(max, h.streakCount), 0);
+    const bestStreak = Math.max(habits.reduce((max, h) => Math.max(max, h.streakCount), 0), streak.currentStreak);
 
     // Find current course (first course not yet completed)
     let currentCourse: CourseSnapshot | null = null;
@@ -96,12 +100,12 @@ export default function NewDashboardPage() {
       currentCourse,
       totalLessons: progress.completedLessons.size,
       totalCourses: progress.completedCourses.size,
-      totalMedals: 1,
+      totalMedals: achievements.badges.filter((b) => achievements.isUnlocked(b.id)).length,
       totalCertificates: progress.certificates.length,
       bestStreak,
     });
     setLoading(false);
-  }, [profile, progress]);
+  }, [profile, progress, streak, achievements]);
 
   useEffect(() => {
     loadDashboard();
@@ -153,7 +157,7 @@ export default function NewDashboardPage() {
 
   return (
     <Container size="lg">
-      <div className="space-y-8 pb-24">
+      <div data-tour="dashboard" className="space-y-8 pb-24">
         {/* Greeting + XP bar */}
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>

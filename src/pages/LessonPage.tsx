@@ -7,6 +7,7 @@ import { Container, Button, EmptyState, GlassCard } from '../components';
 import { Skeleton } from '../components/Skeleton';
 import { useProgress } from '../context/ProgressContext';
 import { getCourse } from '../data/courseRegistry';
+import { useStreak } from '../context/StreakContext';
 
 export default function LessonPage() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
@@ -14,6 +15,7 @@ export default function LessonPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const progress = useProgress();
+  const streak = useStreak();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
@@ -93,6 +95,7 @@ export default function LessonPage() {
 
       // Mark lesson completed in progress context
       progress.completeLesson(lesson.id);
+      streak.recordActivity();
       toast.success('+20 XP — Lesson complete! ⚡');
       setAlreadyCompleted(true);
 
@@ -117,7 +120,7 @@ export default function LessonPage() {
     } finally {
       setCompleting(false);
     }
-  }, [profile, lesson, courseId, course, quizSubmitted, nextLesson, currentIndex, allLessons, navigate, toast, progress]);
+  }, [profile, lesson, courseId, course, quizSubmitted, nextLesson, currentIndex, allLessons, navigate, toast, progress, streak]);
 
   if (loading) {
     return (

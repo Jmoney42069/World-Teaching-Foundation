@@ -6,7 +6,8 @@ import { Container, Button, Badge, EmptyState } from '../components';
 import { Skeleton } from '../components/Skeleton';
 import { useProgress } from '../context/ProgressContext';
 import { getCourse, getCoursePath, type RegistryCourse } from '../data/courseRegistry';
-import { useCertificateDownload } from '../components/CertificateDownload';
+import { useCertificateDownload, type CertificateProps } from '../components/CertificateDownload';
+import CertificateModal from '../components/CertificateModal';
 
 interface LessonWithProgress extends Lesson {
   completed: boolean;
@@ -23,7 +24,8 @@ export default function CourseDetailPage() {
   const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const { download: downloadCert, view: viewCert } = useCertificateDownload();
+  const { download: downloadCert } = useCertificateDownload();
+  const [certModal, setCertModal] = useState<CertificateProps | null>(null);
 
   useEffect(() => {
     if (!courseId || !profile) return;
@@ -158,7 +160,7 @@ export default function CourseDetailPage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
-                onClick={() => viewCert({
+                onClick={() => setCertModal({
                   studentName: profile?.display_name ?? 'Student',
                   courseTitle: course?.title ?? 'Course',
                   issuedAt: new Date().toISOString(),
@@ -250,6 +252,13 @@ export default function CourseDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Certificate Modal */}
+      <CertificateModal
+        open={certModal !== null}
+        onClose={() => setCertModal(null)}
+        props={certModal}
+      />
     </Container>
   );
 }

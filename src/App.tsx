@@ -1,8 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { ProgressProvider } from "./context/ProgressContext";
+import { StreakProvider } from "./context/StreakContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import { AchievementProvider } from "./context/AchievementContext";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AchievementToast from "./components/AchievementToast";
+import OnboardingTour from "./components/OnboardingTour";
 import AuthPage from "./pages/AuthPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NewDashboardPage from "./pages/NewDashboardPage";
@@ -11,8 +16,10 @@ import CourseDetailPage from "./pages/CourseDetailPage";
 import LessonPage from "./pages/LessonPage";
 import HabitsPage from "./pages/HabitsPage";
 import ProfilePage from "./pages/ProfilePage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import BottomNav from "./components/BottomNav";
+import { AnimatePresence, motion } from "framer-motion";
 import type { ReactNode } from "react";
 
 /** Auth bypassed for development — all routes render directly */
@@ -28,23 +35,39 @@ function PublicRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function AppRoutes() {
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] as const } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
+};
+
+function Page({ children }: { children: ReactNode }) {
   return (
-    <>
-      <Routes>
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+      {children}
+    </motion.div>
+  );
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
         {/* Public */}
-        <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
+        <Route path="/auth" element={<Page><PublicRoute><AuthPage /></PublicRoute></Page>} />
 
         {/* Onboarding */}
-        <Route path="/onboarding" element={<OnboardingRoute><OnboardingPage /></OnboardingRoute>} />
+        <Route path="/onboarding" element={<Page><OnboardingRoute><OnboardingPage /></OnboardingRoute></Page>} />
 
         {/* Protected app routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><NewDashboardPage /></ProtectedRoute>} />
-        <Route path="/courses" element={<ProtectedRoute><CourseListPage /></ProtectedRoute>} />
-        <Route path="/courses/:courseId" element={<ProtectedRoute><CourseDetailPage /></ProtectedRoute>} />
-        <Route path="/courses/:courseId/lessons/:lessonId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
-        <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<Page><ProtectedRoute><NewDashboardPage /></ProtectedRoute></Page>} />
+        <Route path="/courses" element={<Page><ProtectedRoute><CourseListPage /></ProtectedRoute></Page>} />
+        <Route path="/courses/:courseId" element={<Page><ProtectedRoute><CourseDetailPage /></ProtectedRoute></Page>} />
+        <Route path="/courses/:courseId/lessons/:lessonId" element={<Page><ProtectedRoute><LessonPage /></ProtectedRoute></Page>} />
+        <Route path="/habits" element={<Page><ProtectedRoute><HabitsPage /></ProtectedRoute></Page>} />
+        <Route path="/profile" element={<Page><ProtectedRoute><ProfilePage /></ProtectedRoute></Page>} />
+        <Route path="/leaderboard" element={<Page><ProtectedRoute><LeaderboardPage /></ProtectedRoute></Page>} />
 
         {/* Legacy redirects */}
         <Route path="/" element={<Navigate to="/auth" replace />} />
@@ -52,9 +75,19 @@ function AppRoutes() {
         <Route path="/certificate" element={<Navigate to="/profile" replace />} />
 
         {/* 404 */}
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<Page><NotFoundPage /></Page>} />
       </Routes>
+    </AnimatePresence>
+  );
+}
+
+function AppRoutes() {
+  return (
+    <>
+      <AnimatedRoutes />
       <BottomNav />
+      <AchievementToast />
+      <OnboardingTour />
     </>
   );
 }
@@ -62,15 +95,21 @@ function AppRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ProgressProvider>
-          <ToastProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </ToastProvider>
-        </ProgressProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ProgressProvider>
+            <StreakProvider>
+              <AchievementProvider>
+                <ToastProvider>
+                  <BrowserRouter>
+                    <AppRoutes />
+                  </BrowserRouter>
+                </ToastProvider>
+              </AchievementProvider>
+            </StreakProvider>
+          </ProgressProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

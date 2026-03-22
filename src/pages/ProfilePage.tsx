@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getLevelInfo, type Path, type Medal, type Certificate, type Course } from '../lib/database.types';
+import { getLevelInfo, type Path, type Certificate, type Course } from '../lib/database.types';
 import { Container, Button, GlassCard, Badge, ProgressRing, EmptyState, Input } from '../components';
 import { Skeleton } from '../components/Skeleton';
 import { useProgress } from '../context/ProgressContext';
-import { useCertificateDownload } from '../components/CertificateDownload';
+import { useCertificateDownload, type CertificateProps } from '../components/CertificateDownload';
+import CertificateModal from '../components/CertificateModal';
+import { useAchievements } from '../context/AchievementContext';
 
 interface CertificateWithCourse extends Certificate {
   course?: Course;
@@ -19,13 +21,14 @@ export default function ProfilePage() {
   const progress = useProgress();
 
   const [paths, setPaths] = useState<Path[]>([]);
-  const [medals, setMedals] = useState<(Medal & { earned: boolean; earned_at?: string })[]>([]);
   const [certificates, setCertificates] = useState<CertificateWithCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
-  const { download: downloadCert, view: viewCert } = useCertificateDownload();
+  const { download: downloadCert } = useCertificateDownload();
+  const { badges, isUnlocked } = useAchievements();
+  const [certModal, setCertModal] = useState<CertificateProps | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -43,11 +46,6 @@ export default function ProfilePage() {
       { id: 'p3', title: 'Peak Health', description: 'Optimize your body and energy.', icon: '💪', color: '#ef4444', created_at: '' },
       { id: 'p4', title: 'Mindset Mastery', description: 'Build mental resilience.', icon: '🧠', color: '#a855f7', created_at: '' },
       { id: 'p5', title: 'Entrepreneurship', description: 'Turn ideas into business.', icon: '💡', color: '#f59e0b', created_at: '' },
-    ]);
-    setMedals([
-      { id: 'm1', title: 'First Steps', description: 'Complete onboarding', icon: '👣', condition_type: 'onboarding_complete', condition_value: 1, xp_reward: 50, created_at: '', earned: true, earned_at: new Date().toISOString() },
-      { id: 'm2', title: 'Quiz Whiz', description: 'Take the personality quiz', icon: '🧠', condition_type: 'quiz_complete', condition_value: 1, xp_reward: 50, created_at: '', earned: false },
-      { id: 'm3', title: 'Bookworm', description: 'Complete 5 lessons', icon: '📚', condition_type: 'lessons_completed', condition_value: 5, xp_reward: 100, created_at: '', earned: false },
     ]);
     setCertificates(
       progress.certificates.map((c) => ({
@@ -88,7 +86,6 @@ export default function ProfilePage() {
 
   const levelInfo = getLevelInfo(profile.xp);
   const currentPath = paths.find((p) => p.id === profile.path_id);
-  const earnedMedals = medals.filter((m) => m.earned);
 
   return (
     <Container size="md">
@@ -194,39 +191,34 @@ export default function ProfilePage() {
           )}
         </GlassCard>
 
-        {/* Medals */}
+        {/* Achievement Badges */}
         <GlassCard padding="md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-bold tracking-tight">Medals</h2>
-            <Badge>{earnedMedals.length}/{medals.length}</Badge>
+            <h2 className="font-display text-lg font-bold tracking-tight">Badges</h2>
+            <Badge>{badges.filter((b) => isUnlocked(b.id)).length}/{badges.length}</Badge>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-5 gap-3">
-              {[1,2,3,4,5].map((i) => <Skeleton key={i} width="100%" height="64px" rounded="lg" />)}
-            </div>
-          ) : medals.length === 0 ? (
-            <p className="text-sm text-muted text-center py-4">No medals available yet.</p>
-          ) : (
-            <div className="grid grid-cols-5 gap-3">
-              {medals.map((medal) => (
+          <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
+            {badges.map((badge) => {
+              const unlocked = isUnlocked(badge.id);
+              return (
                 <div
-                  key={medal.id}
-                  title={`${medal.title}: ${medal.description}`}
+                  key={badge.id}
+                  title={`${badge.title}: ${badge.description}`}
                   className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-center transition-all ${
-                    medal.earned
+                    unlocked
                       ? 'border-accent/20 bg-accent/5'
                       : 'border-border-subtle bg-surface opacity-40 grayscale'
                   }`}
                 >
-                  <span className="text-2xl">{medal.icon}</span>
+                  <span className="text-2xl">{badge.icon}</span>
                   <span className="text-[10px] font-semibold leading-tight line-clamp-2">
-                    {medal.title}
+                    {badge.title}
                   </span>
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </GlassCard>
 
         {/* Certificates */}
@@ -259,7 +251,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => viewCert({
+                      onClick={() => setCertModal({
                         studentName: profile.display_name,
                         courseTitle: cert.course?.title ?? 'Course',
                         issuedAt: cert.issued_at,
@@ -297,6 +289,13 @@ export default function ProfilePage() {
           </p>
         </div>
       </div>
+
+      {/* Certificate Modal */}
+      <CertificateModal
+        open={certModal !== null}
+        onClose={() => setCertModal(null)}
+        props={certModal}
+      />
     </Container>
   );
 }

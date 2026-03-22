@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-interface CertificateProps {
+export interface CertificateProps {
   studentName: string;
   courseTitle: string;
   issuedAt: string;
@@ -17,7 +17,7 @@ export function downloadCertificate(props: CertificateProps) {
 }
 
 /** Renders the certificate to a canvas and returns it. */
-function renderCertificateCanvas({ studentName, courseTitle, issuedAt, credentialId }: CertificateProps): HTMLCanvasElement {
+export function renderCertificateCanvas({ studentName, courseTitle, issuedAt, credentialId }: CertificateProps): HTMLCanvasElement {
   const W = 1600;
   const H = 1130;
   const canvas = document.createElement('canvas');

@@ -23,7 +23,7 @@ export default function CourseDetailPage() {
   const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const downloadCert = useCertificateDownload();
+  const { download: downloadCert, view: viewCert } = useCertificateDownload();
 
   useEffect(() => {
     if (!courseId || !profile) return;
@@ -156,17 +156,30 @@ export default function CourseDetailPage() {
             <p className="text-sm font-semibold">
               Course completed! Certificate earned.
             </p>
-            <button
-              onClick={() => downloadCert({
-                studentName: profile?.display_name ?? 'Student',
-                courseTitle: course?.title ?? 'Course',
-                issuedAt: new Date().toISOString(),
-                credentialId: `WTF-${courseId?.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-              })}
-              className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-5 py-2.5 text-sm font-semibold text-accent transition-all hover:bg-accent/20 hover:border-accent/50 active:scale-95"
-            >
-              ⬇ Download Certificate
-            </button>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => viewCert({
+                  studentName: profile?.display_name ?? 'Student',
+                  courseTitle: course?.title ?? 'Course',
+                  issuedAt: new Date().toISOString(),
+                  credentialId: `WTF-${courseId?.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
+                })}
+                className="inline-flex items-center gap-2 rounded-xl border border-border-subtle bg-surface px-5 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-surface-hover hover:border-accent/30 active:scale-95"
+              >
+                🔍 View Certificate
+              </button>
+              <button
+                onClick={() => downloadCert({
+                  studentName: profile?.display_name ?? 'Student',
+                  courseTitle: course?.title ?? 'Course',
+                  issuedAt: new Date().toISOString(),
+                  credentialId: `WTF-${courseId?.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
+                })}
+                className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-5 py-2.5 text-sm font-semibold text-accent transition-all hover:bg-accent/20 hover:border-accent/50 active:scale-95"
+              >
+                ⬇ Download Certificate
+              </button>
+            </div>
             <Link
               to="/profile"
               className="mt-1 inline-block text-xs font-medium text-muted-soft hover:text-accent transition-colors"

@@ -8,7 +8,16 @@ interface CertificateProps {
 }
 
 /** Draws an official-looking certificate on a canvas and triggers a PNG download. */
-export function downloadCertificate({ studentName, courseTitle, issuedAt, credentialId }: CertificateProps) {
+export function downloadCertificate(props: CertificateProps) {
+  const canvas = renderCertificateCanvas(props);
+  const link = document.createElement('a');
+  link.download = `WTF-Certificate-${props.courseTitle.replace(/[^a-zA-Z0-9]/g, '-')}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+/** Renders the certificate to a canvas and returns it. */
+function renderCertificateCanvas({ studentName, courseTitle, issuedAt, credentialId }: CertificateProps): HTMLCanvasElement {
   const W = 1600;
   const H = 1130;
   const canvas = document.createElement('canvas');
@@ -206,11 +215,19 @@ export function downloadCertificate({ studentName, courseTitle, issuedAt, creden
   ctx.font = 'bold 11px Georgia, "Times New Roman", serif';
   ctx.fillText('WTF — WORLD TEACHING FOUNDATION', W / 2, H - m - 20);
 
-  // ── Download ──
-  const link = document.createElement('a');
-  link.download = `WTF-Certificate-${courseTitle.replace(/[^a-zA-Z0-9]/g, '-')}.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  return canvas;
+}
+
+/** Opens the certificate in a new browser tab for viewing / printing. */
+export function viewCertificate(props: CertificateProps) {
+  // Re-use the same renderer by calling downloadCertificate's internal canvas builder
+  const canvas = renderCertificateCanvas(props);
+  const dataUrl = canvas.toDataURL('image/png');
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(`<!DOCTYPE html><html><head><title>WTF Certificate — ${props.courseTitle}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f0f14;display:flex;justify-content:center;align-items:center;min-height:100vh}img{max-width:100%;height:auto}</style></head><body><img src="${dataUrl}" alt="Certificate" /></body></html>`);
+    win.document.close();
+  }
 }
 
 // ── Helpers ──
@@ -290,10 +307,15 @@ function drawSeal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: numb
   ctx.restore();
 }
 
-/** React hook that returns a download handler */
+/** React hook that returns download and view handlers */
 export function useCertificateDownload() {
-  return useCallback(
+  const download = useCallback(
     (props: CertificateProps) => downloadCertificate(props),
     [],
   );
+  const view = useCallback(
+    (props: CertificateProps) => viewCertificate(props),
+    [],
+  );
+  return { download, view };
 }

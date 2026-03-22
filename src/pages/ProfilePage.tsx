@@ -25,7 +25,7 @@ export default function ProfilePage() {
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
-  const downloadCert = useCertificateDownload();
+  const { download: downloadCert, view: viewCert } = useCertificateDownload();
 
   useEffect(() => {
     if (!profile) return;
@@ -257,17 +257,30 @@ export default function ProfilePage() {
                       ID: {cert.credential_id} · {new Date(cert.issued_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <button
-                    onClick={() => downloadCert({
-                      studentName: profile.display_name,
-                      courseTitle: cert.course?.title ?? 'Course',
-                      issuedAt: cert.issued_at,
-                      credentialId: cert.credential_id,
-                    })}
-                    className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent transition-all hover:bg-accent/20 hover:border-accent/50 active:scale-95"
-                  >
-                    ⬇ Download
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => viewCert({
+                        studentName: profile.display_name,
+                        courseTitle: cert.course?.title ?? 'Course',
+                        issuedAt: cert.issued_at,
+                        credentialId: cert.credential_id,
+                      })}
+                      className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-hover px-3 py-1.5 text-xs font-semibold text-primary transition-all hover:bg-surface hover:border-accent/30 active:scale-95"
+                    >
+                      🔍 View
+                    </button>
+                    <button
+                      onClick={() => downloadCert({
+                        studentName: profile.display_name,
+                        courseTitle: cert.course?.title ?? 'Course',
+                        issuedAt: cert.issued_at,
+                        credentialId: cert.credential_id,
+                      })}
+                      className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent transition-all hover:bg-accent/20 hover:border-accent/50 active:scale-95"
+                    >
+                      ⬇ Download
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

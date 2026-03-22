@@ -1,10 +1,13 @@
 import { useCallback } from 'react';
+import type { TierLevel } from '../data/courseRegistry';
+import { TIER_META } from '../data/courseRegistry';
 
 export interface CertificateProps {
   studentName: string;
   courseTitle: string;
   issuedAt: string;
   credentialId: string;
+  tier?: TierLevel;
 }
 
 /** Draws an official-looking certificate on a canvas and triggers a PNG download. */
@@ -17,7 +20,7 @@ export function downloadCertificate(props: CertificateProps) {
 }
 
 /** Renders the certificate to a canvas and returns it. */
-export function renderCertificateCanvas({ studentName, courseTitle, issuedAt, credentialId }: CertificateProps): HTMLCanvasElement {
+export function renderCertificateCanvas({ studentName, courseTitle, issuedAt, credentialId, tier }: CertificateProps): HTMLCanvasElement {
   const W = 1600;
   const H = 1130;
   const canvas = document.createElement('canvas');
@@ -124,6 +127,14 @@ export function renderCertificateCanvas({ studentName, courseTitle, issuedAt, cr
   ctx.fillStyle = '#c9a227';
   ctx.font = 'bold 38px Georgia, "Times New Roman", serif';
   ctx.fillText(courseTitle, W / 2, 540);
+
+  // ── Tier badge ──
+  if (tier) {
+    const tierLabel = TIER_META[tier].label + ' Edition';
+    ctx.fillStyle = tier === 'advanced' ? '#c9a227' : tier === 'medium' ? '#aaa' : '#888';
+    ctx.font = 'bold 18px Georgia, "Times New Roman", serif';
+    ctx.fillText(tierLabel.toUpperCase(), W / 2, 575);
+  }
 
   // ── Bottom decorative line ──
   const bLineY = 590;

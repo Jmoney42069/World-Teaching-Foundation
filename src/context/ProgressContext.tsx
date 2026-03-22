@@ -1,17 +1,22 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import type { TierLevel } from '../data/courseRegistry';
 
 interface ProgressState {
   completedLessons: Set<string>;
   completedCourses: Set<string>;
-  certificates: { courseId: string; courseTitle: string; issuedAt: string }[];
+  certificates: { courseId: string; courseTitle: string; issuedAt: string; tier: TierLevel }[];
   xpEarned: number;
+  /** Tracks which tier the user selected for each course */
+  courseTiers: Record<string, TierLevel>;
 }
 
 interface ProgressContextValue extends ProgressState {
   completeLesson: (lessonId: string) => void;
-  completeCourse: (courseId: string, courseTitle: string) => void;
+  completeCourse: (courseId: string, courseTitle: string, tier: TierLevel) => void;
   isLessonCompleted: (lessonId: string) => boolean;
   isCourseCompleted: (courseId: string) => boolean;
+  setCourseTier: (courseId: string, tier: TierLevel) => void;
+  getCourseTier: (courseId: string) => TierLevel | undefined;
 }
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
@@ -22,6 +27,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     completedCourses: new Set(),
     certificates: [],
     xpEarned: 0,
+    courseTiers: {},
   });
 
   const completeLesson = useCallback((lessonId: string) => {
@@ -33,7 +39,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const completeCourse = useCallback((courseId: string, courseTitle: string) => {
+  const completeCourse = useCallback((courseId: string, courseTitle: string, tier: TierLevel) => {
     setState((prev) => {
       if (prev.completedCourses.has(courseId)) return prev;
       const next = new Set(prev.completedCourses);
@@ -44,11 +50,23 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
         xpEarned: prev.xpEarned + 200,
         certificates: [
           ...prev.certificates,
-          { courseId, courseTitle, issuedAt: new Date().toISOString() },
+          { courseId, courseTitle, issuedAt: new Date().toISOString(), tier },
         ],
       };
     });
   }, []);
+
+  const setCourseTier = useCallback((courseId: string, tier: TierLevel) => {
+    setState((prev) => ({
+      ...prev,
+      courseTiers: { ...prev.courseTiers, [courseId]: tier },
+    }));
+  }, []);
+
+  const getCourseTier = useCallback(
+    (courseId: string) => state.courseTiers[courseId],
+    [state.courseTiers],
+  );
 
   const isLessonCompleted = useCallback(
     (lessonId: string) => state.completedLessons.has(lessonId),
@@ -62,7 +80,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   return (
     <ProgressContext.Provider
-      value={{ ...state, completeLesson, completeCourse, isLessonCompleted, isCourseCompleted }}
+      value={{ ...state, completeLesson, completeCourse, isLessonCompleted, isCourseCompleted, setCourseTier, getCourseTier }}
     >
       {children}
     </ProgressContext.Provider>

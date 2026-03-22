@@ -40,7 +40,8 @@ export default function CourseListPage() {
 
     const registryCourses = getAllCourses();
     const mapped: CourseDisplay[] = registryCourses.map((c) => {
-      const lessonIds = getCourseLessonIds(c.id);
+      const tier = progress.getCourseTier(c.id) ?? 'beginner';
+      const lessonIds = getCourseLessonIds(c.id, tier);
       const completedCount = lessonIds.filter((id) => progress.isLessonCompleted(id)).length;
       const path = getCoursePath(c.path_id) ?? undefined;
       return {

@@ -5,7 +5,7 @@ import type { Lesson, Path } from '../lib/database.types';
 import { Container, Button, Badge, EmptyState } from '../components';
 import { Skeleton } from '../components/Skeleton';
 import { useProgress } from '../context/ProgressContext';
-import { getCourse, getCoursePath, type RegistryCourse } from '../data/courseRegistry';
+import { getCourse, getCoursePath, TIER_META, type RegistryCourse, type TierLevel } from '../data/courseRegistry';
 import { useCertificateDownload, type CertificateProps } from '../components/CertificateDownload';
 import CertificateModal from '../components/CertificateModal';
 
@@ -26,11 +26,19 @@ export default function CourseDetailPage() {
   const [courseCompleted, setCourseCompleted] = useState(false);
   const { download: downloadCert } = useCertificateDownload();
   const [certModal, setCertModal] = useState<CertificateProps | null>(null);
+  const [selectedTier, setSelectedTier] = useState<TierLevel>('beginner');
 
   useEffect(() => {
     if (!courseId || !profile) return;
     loadCourse();
-  }, [courseId, profile, progressCtx.completedLessons, progressCtx.completedCourses]);
+  }, [courseId, profile, progressCtx.completedLessons, progressCtx.completedCourses, selectedTier]);
+
+  // Restore previously chosen tier
+  useEffect(() => {
+    if (!courseId) return;
+    const saved = progressCtx.getCourseTier(courseId);
+    if (saved) setSelectedTier(saved);
+  }, [courseId]);
 
   async function loadCourse() {
     setLoading(true);
@@ -44,9 +52,15 @@ export default function CourseDetailPage() {
 
     setCourse(registryCourse);
     setPath(getCoursePath(registryCourse.path_id) ?? null);
-    setLessons(registryCourse.lessons.map((l) => ({ ...l, completed: progressCtx.isLessonCompleted(l.id) })));
+    const tierLessons = registryCourse.tiers[selectedTier].lessons;
+    setLessons(tierLessons.map((l) => ({ ...l, completed: progressCtx.isLessonCompleted(l.id) })));
     setCourseCompleted(progressCtx.isCourseCompleted(courseId!));
     setLoading(false);
+  }
+
+  function handleTierChange(tier: TierLevel) {
+    setSelectedTier(tier);
+    if (courseId) progressCtx.setCourseTier(courseId, tier);
   }
 
   const completedCount = lessons.filter((l) => l.completed).length;
@@ -113,6 +127,41 @@ export default function CourseDetailPage() {
           </h1>
           <p className="text-sm text-muted leading-relaxed">{course.description}</p>
 
+          {/* Tier selector */}
+          <div className="grid grid-cols-3 gap-3">
+            {(['beginner', 'medium', 'advanced'] as TierLevel[]).map((t) => {
+              const meta = TIER_META[t];
+              const tierInfo = course.tiers[t];
+              const isActive = selectedTier === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => handleTierChange(t)}
+                  className={`relative rounded-xl border p-4 text-left transition-all ${
+                    isActive
+                      ? 'border-accent bg-accent/10 shadow-sm'
+                      : 'border-border-subtle bg-surface hover:border-accent/30 hover:bg-surface-hover'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider">{meta.label}</span>
+                    <span className={`text-xs font-bold ${meta.price === 0 ? 'text-accent' : 'text-primary'}`}>
+                      {meta.priceLabel}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted line-clamp-2">{tierInfo.description}</p>
+                  <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-soft">
+                    <span>⏱ {meta.duration}</span>
+                    <span>• {tierInfo.lessons.length} lessons</span>
+                  </div>
+                  {isActive && (
+                    <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] text-bg font-bold">✓</div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Stats */}
           <div className="flex flex-wrap gap-4 text-xs text-muted-soft">
             <span>{lessons.length} lessons</span>
@@ -160,23 +209,31 @@ export default function CourseDetailPage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
-                onClick={() => setCertModal({
-                  studentName: profile?.display_name ?? 'Student',
-                  courseTitle: course?.title ?? 'Course',
-                  issuedAt: new Date().toISOString(),
-                  credentialId: `WTF-${courseId?.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-                })}
+                onClick={() => {
+                  const certTier = progressCtx.certificates.find(c => c.courseId === courseId)?.tier ?? selectedTier;
+                  setCertModal({
+                    studentName: profile?.display_name ?? 'Student',
+                    courseTitle: course?.title ?? 'Course',
+                    issuedAt: new Date().toISOString(),
+                    credentialId: `WTF-${courseId?.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
+                    tier: certTier,
+                  });
+                }}
                 className="inline-flex items-center gap-2 rounded-xl border border-border-subtle bg-surface px-5 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-surface-hover hover:border-accent/30 active:scale-95"
               >
                 🔍 View Certificate
               </button>
               <button
-                onClick={() => downloadCert({
-                  studentName: profile?.display_name ?? 'Student',
-                  courseTitle: course?.title ?? 'Course',
-                  issuedAt: new Date().toISOString(),
-                  credentialId: `WTF-${courseId?.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-                })}
+                onClick={() => {
+                  const certTier = progressCtx.certificates.find(c => c.courseId === courseId)?.tier ?? selectedTier;
+                  downloadCert({
+                    studentName: profile?.display_name ?? 'Student',
+                    courseTitle: course?.title ?? 'Course',
+                    issuedAt: new Date().toISOString(),
+                    credentialId: `WTF-${courseId?.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
+                    tier: certTier,
+                  });
+                }}
                 className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-5 py-2.5 text-sm font-semibold text-accent transition-all hover:bg-accent/20 hover:border-accent/50 active:scale-95"
               >
                 ⬇ Download Certificate

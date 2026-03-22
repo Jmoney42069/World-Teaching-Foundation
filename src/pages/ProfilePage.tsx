@@ -9,6 +9,7 @@ import { useProgress } from '../context/ProgressContext';
 import { useCertificateDownload, type CertificateProps } from '../components/CertificateDownload';
 import CertificateModal from '../components/CertificateModal';
 import { useAchievements } from '../context/AchievementContext';
+import { TIER_META } from '../data/courseRegistry';
 
 interface CertificateWithCourse extends Certificate {
   course?: Course;
@@ -237,14 +238,24 @@ export default function ProfilePage() {
             />
           ) : (
             <div className="space-y-3">
-              {certificates.map((cert) => (
+              {certificates.map((cert) => {
+                const certRecord = progress.certificates.find(c => c.courseId === cert.course_id);
+                const tierLabel = certRecord?.tier ? TIER_META[certRecord.tier].label : undefined;
+                return (
                 <div
                   key={cert.id}
                   className="flex items-center gap-4 rounded-xl border border-border-subtle bg-surface p-4"
                 >
                   <span className="text-2xl">🎓</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">{cert.course?.title ?? 'Course'}</p>
+                    <p className="text-sm font-semibold">
+                      {cert.course?.title ?? 'Course'}
+                      {tierLabel && (
+                        <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                          {tierLabel}
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-soft">
                       ID: {cert.credential_id} · {new Date(cert.issued_at).toLocaleDateString()}
                     </p>
@@ -256,6 +267,7 @@ export default function ProfilePage() {
                         courseTitle: cert.course?.title ?? 'Course',
                         issuedAt: cert.issued_at,
                         credentialId: cert.credential_id,
+                        tier: certRecord?.tier,
                       })}
                       className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-hover px-3 py-1.5 text-xs font-semibold text-primary transition-all hover:bg-surface hover:border-accent/30 active:scale-95"
                     >
@@ -267,6 +279,7 @@ export default function ProfilePage() {
                         courseTitle: cert.course?.title ?? 'Course',
                         issuedAt: cert.issued_at,
                         credentialId: cert.credential_id,
+                        tier: certRecord?.tier,
                       })}
                       className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent transition-all hover:bg-accent/20 hover:border-accent/50 active:scale-95"
                     >
@@ -274,7 +287,8 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </GlassCard>

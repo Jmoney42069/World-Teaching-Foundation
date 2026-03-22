@@ -6,7 +6,7 @@ import type { Lesson, QuizQuestion, Course } from '../lib/database.types';
 import { Container, Button, EmptyState, GlassCard } from '../components';
 import { Skeleton } from '../components/Skeleton';
 import { useProgress } from '../context/ProgressContext';
-import { getCourse } from '../data/courseRegistry';
+import { getCourse, getLesson as findLesson, getTierLessons, type TierLevel } from '../data/courseRegistry';
 import { useStreak } from '../context/StreakContext';
 
 export default function LessonPage() {
@@ -20,6 +20,7 @@ export default function LessonPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
+  const [lessonTier, setLessonTier] = useState<TierLevel>('beginner');
   const [loading, setLoading] = useState(true);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
 
@@ -53,11 +54,22 @@ export default function LessonPage() {
       return;
     }
 
-    const found = registryCourse.lessons.find((l) => l.id === lessonId) ?? registryCourse.lessons[0];
-    setLesson(found);
+    // Find the lesson across tiers
+    const result = courseId && lessonId ? findLesson(courseId, lessonId) : undefined;
+    if (!result) {
+      setLesson(null);
+      setCourse(null);
+      setLoading(false);
+      return;
+    }
+
+    const tier = result.tier;
+    setLessonTier(tier);
+    setLesson(result.lesson);
     setCourse(registryCourse);
-    setAllLessons(registryCourse.lessons);
-    setAlreadyCompleted(progress.isLessonCompleted(found.id));
+    const tierLessons = getTierLessons(courseId!, tier);
+    setAllLessons(tierLessons);
+    setAlreadyCompleted(progress.isLessonCompleted(result.lesson.id));
     setLoading(false);
   }
 
@@ -105,7 +117,7 @@ export default function LessonPage() {
         (l) => l.id === lesson.id || progress.isLessonCompleted(l.id)
       );
       if (isLast || allOthersDone) {
-        progress.completeCourse(courseId, course?.title ?? 'Course');
+        progress.completeCourse(courseId, course?.title ?? 'Course', lessonTier);
         toast.success(`🎓 Course completed! Certificate earned! +200 XP`);
       }
 
@@ -120,7 +132,7 @@ export default function LessonPage() {
     } finally {
       setCompleting(false);
     }
-  }, [profile, lesson, courseId, course, quizSubmitted, nextLesson, currentIndex, allLessons, navigate, toast, progress, streak]);
+  }, [profile, lesson, courseId, course, quizSubmitted, nextLesson, currentIndex, allLessons, lessonTier, navigate, toast, progress, streak]);
 
   if (loading) {
     return (
